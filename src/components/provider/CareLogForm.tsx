@@ -15,6 +15,7 @@ import {
   Soup,
   Utensils,
 } from 'lucide-react';
+import { callCureLinkFunction } from '@/lib/edgeFunctions';
 
 type MealStatus = 'GOOD' | 'FAIR' | 'POOR';
 type ConditionStatus = 'GOOD' | 'NORMAL' | 'BAD';
@@ -47,10 +48,12 @@ const TEXT = {
   missingRequired:
     '\uc2dd\uc0ac, \ucee8\ub514\uc158, \ubcf5\uc57d \uc5ec\ubd80\ub97c \ubaa8\ub450 \uccb4\ud06c\ud574 \uc8fc\uc138\uc694.',
   submitted:
-    '\ub3cc\ubd04 \uc77c\uc9c0\uac00 \uc81c\ucd9c \ud615\uc2dd\uc73c\ub85c \uc900\ube44\ub410\uc2b5\ub2c8\ub2e4. \ubc31\uc5d4\ub4dc\uc5d0\uc11c \ubcf4\ud638\uc790\uc6a9 \ud55c\uad6d\uc5b4 \ub9ac\ud3ec\ud2b8\ub85c \ubcc0\ud658\ub429\ub2c8\ub2e4.',
+    '돌봄 일지가 Supabase match_logs에 저장되었습니다.',
   payloadPreview: 'match_logs payload',
   medicationDone: '\ubcf5\uc57d \uc644\ub8cc',
   medicationSkipped: '\ubbf8\ubcf5\uc57d / \ud574\ub2f9\uc5c6\uc74c',
+  submitting: '저장 중...',
+  submitError: '일지 저장에 실패했습니다.',
 };
 
 const LANGUAGES_OPTION: Array<{ code: RawLogLang; label: string }> = [
@@ -147,13 +150,14 @@ export default function CareLogForm() {
   const [rawLogText, setRawLogText] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [submittedPayload, setSubmittedPayload] = useState<MatchLogPayload | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const livePayload = useMemo(
     () => buildPayload(mealStatus, conditionStatus, medicationChecked, rawLogLang, rawLogText),
     [conditionStatus, mealStatus, medicationChecked, rawLogLang, rawLogText],
   );
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const payload = buildPayload(
@@ -170,9 +174,19 @@ export default function CareLogForm() {
       return;
     }
 
+    setIsSubmitting(true);
     setErrorMessage('');
-    setSubmittedPayload(payload);
-    console.log('Supabase match_logs payload:', payload);
+
+    try {
+      await callCureLinkFunction('submit-care-log', payload);
+      setSubmittedPayload(payload);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : TEXT.submitError;
+      setSubmittedPayload(null);
+      setErrorMessage(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -414,10 +428,11 @@ export default function CareLogForm() {
         <footer className="sticky bottom-0 bg-gradient-to-t from-white via-white to-white/80 p-5 pt-3">
           <button
             type="submit"
-            className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-base font-black text-white shadow-lg shadow-slate-950/20 transition hover:bg-slate-900 active:scale-[0.97]"
+            disabled={isSubmitting}
+            className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-base font-black text-white shadow-lg shadow-slate-950/20 transition hover:bg-slate-900 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-70"
           >
             <Send className="h-5 w-5 text-sky-400" aria-hidden="true" />
-            {TEXT.submit}
+            {isSubmitting ? TEXT.submitting : TEXT.submit}
           </button>
         </footer>
       </form>

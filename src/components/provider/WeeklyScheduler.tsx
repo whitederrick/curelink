@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { CalendarDays, Check, Clock, RefreshCw, Save, Sparkles, Wand2 } from 'lucide-react';
+import { callCureLinkFunction } from '@/lib/edgeFunctions';
 import { buildUtcScheduleWindow, getDeviceTimeZone } from '@/utils/timezone-helper';
 
 type WeekDayId = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -32,8 +33,10 @@ const TEXT = {
   summary: '\uc800\uc7a5 \uc608\uc815 \uc2dc\uac04',
   countSuffix: '\uac1c',
   save: '\uc124\uc815 \uc644\ub8cc \ubc0f \uc800\uc7a5\ud558\uae30',
-  saved: '\uc8fc\uac04 \uac00\uc6a9 \uc2dc\uac04\uc774 \uc800\uc7a5 \ud615\uc2dd\uc73c\ub85c \uc900\ube44\ub410\uc2b5\ub2c8\ub2e4.',
+  saved: '주간 가용 시간이 Supabase에 저장되었습니다.',
   timezone: '\uae30\uae30 \ud0c0\uc784\uc874',
+  saving: '저장 중...',
+  saveError: '스케줄 저장에 실패했습니다.',
 };
 
 const WEEK_DAYS: Array<{ id: WeekDayId; label: string; enLabel: string }> = [
@@ -109,6 +112,8 @@ export default function WeeklyScheduler() {
   const [selectedDay, setSelectedDay] = useState<WeekDayId>(1);
   const [scheduleState, setScheduleState] = useState<ScheduleState>(INITIAL_SCHEDULE);
   const [savedMessageVisible, setSavedMessageVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const selectedDayLabel = WEEK_DAYS.find((day) => day.id === selectedDay)?.label ?? '';
   const payload = useMemo(() => buildPayload(scheduleState), [scheduleState]);
@@ -116,6 +121,7 @@ export default function WeeklyScheduler() {
 
   const toggleSlot = (day: WeekDayId, slotId: TimeSlotId) => {
     setSavedMessageVisible(false);
+    setSaveError('');
     setScheduleState((prev) => {
       const daySchedule = prev[day] ?? {};
 
@@ -131,6 +137,7 @@ export default function WeeklyScheduler() {
 
   const applyCurrentDayToDays = (targetDays: WeekDayId[]) => {
     setSavedMessageVisible(false);
+    setSaveError('');
     setScheduleState((prev) => {
       const currentDaySlots = { ...(prev[selectedDay] ?? {}) };
       const next = { ...prev };
@@ -145,6 +152,7 @@ export default function WeeklyScheduler() {
 
   const selectWholeWeek = () => {
     setSavedMessageVisible(false);
+    setSaveError('');
     setScheduleState(() => {
       const allSlots = TIME_SLOTS.reduce<Partial<Record<TimeSlotId, boolean>>>((acc, slot) => {
         acc[slot.id] = true;
@@ -160,12 +168,26 @@ export default function WeeklyScheduler() {
 
   const resetSchedule = () => {
     setSavedMessageVisible(false);
+    setSaveError('');
     setScheduleState({});
   };
 
-  const handleSave = () => {
-    console.log('CureLink provider_schedules payload:', payload);
-    setSavedMessageVisible(true);
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveError('');
+
+    try {
+      await callCureLinkFunction('save-provider-schedule', {
+        schedules: payload,
+      });
+      setSavedMessageVisible(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : TEXT.saveError;
+      setSavedMessageVisible(false);
+      setSaveError(message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -341,16 +363,23 @@ export default function WeeklyScheduler() {
               {TEXT.saved}
             </div>
           )}
+
+          {saveError && (
+            <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+              {saveError}
+            </div>
+          )}
         </div>
 
         <footer className="sticky bottom-0 bg-gradient-to-t from-white via-white to-white/80 p-5 pt-3">
           <button
             type="button"
             onClick={handleSave}
+            disabled={isSaving}
             className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-base font-black text-white shadow-lg shadow-slate-950/20 transition hover:bg-slate-900 active:scale-[0.97]"
           >
             <Save className="h-5 w-5 text-sky-400" aria-hidden="true" />
-            {TEXT.save}
+            {isSaving ? TEXT.saving : TEXT.save}
           </button>
         </footer>
       </div>

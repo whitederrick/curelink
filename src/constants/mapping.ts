@@ -1,13 +1,17 @@
-export type MatchStatus = 'MATCHED' | 'ONGOING' | 'COMPLETED' | 'CANCELED';
+export type MatchStatus = 'PENDING' | 'MATCHED' | 'ONGOING' | 'COMPLETED' | 'CANCELED' | 'TIMEOUT';
 export type CareType = 'BRIDGE' | 'TOURISM' | 'EMERGENCY';
 export type Religion = 'CHRISTIAN' | 'BUDDHIST' | 'CATHOLIC' | 'NONE';
 export type CareTag = 'MEDICATION' | 'WHEELCHAIR' | 'TRANSLATION' | 'PICKUP' | 'PHARMACY';
 
 export const CURE_LINK_MAPPING = {
   STATUS: {
-    MATCHED: {
-      label: '매칭 대기',
+    PENDING: {
+      label: '수락 대기',
       color: 'bg-amber-50 text-amber-700 border-amber-200',
+    },
+    MATCHED: {
+      label: '매칭 완료',
+      color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     },
     ONGOING: {
       label: '진행 중',
@@ -20,6 +24,10 @@ export const CURE_LINK_MAPPING = {
     CANCELED: {
       label: '취소됨',
       color: 'bg-red-50 text-red-600 border-red-200',
+    },
+    TIMEOUT: {
+      label: '응답 만료',
+      color: 'bg-rose-50 text-rose-700 border-rose-200',
     },
   } satisfies Record<MatchStatus, { label: string; color: string }>,
 

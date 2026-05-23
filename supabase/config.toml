@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.matching-workflow]
 verify_jwt = false
+
+[functions.save-provider-schedule]
+verify_jwt = false
+
+[functions.submit-care-log]
+verify_jwt = false
+
+[functions.create-booking]
+verify_jwt = false
