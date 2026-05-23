@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { CalendarDays, Check, Clock, RefreshCw, Save, Sparkles, Wand2 } from 'lucide-react';
+import { buildUtcScheduleWindow, getDeviceTimeZone } from '@/utils/timezone-helper';
 
 type WeekDayId = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 type TimeSlotId = 'SLOT_MORNING' | 'SLOT_AFTERNOON' | 'SLOT_NIGHT';
@@ -11,6 +12,9 @@ type AvailabilityPayload = {
   day_of_week: WeekDayId;
   start_time: string;
   end_time: string;
+  local_timezone: string;
+  start_at_utc: string;
+  end_at_utc: string;
 };
 
 const TEXT = {
@@ -29,6 +33,7 @@ const TEXT = {
   countSuffix: '\uac1c',
   save: '\uc124\uc815 \uc644\ub8cc \ubc0f \uc800\uc7a5\ud558\uae30',
   saved: '\uc8fc\uac04 \uac00\uc6a9 \uc2dc\uac04\uc774 \uc800\uc7a5 \ud615\uc2dd\uc73c\ub85c \uc900\ube44\ub410\uc2b5\ub2c8\ub2e4.',
+  timezone: '\uae30\uae30 \ud0c0\uc784\uc874',
 };
 
 const WEEK_DAYS: Array<{ id: WeekDayId; label: string; enLabel: string }> = [
@@ -89,6 +94,7 @@ function buildPayload(scheduleState: ScheduleState): AvailabilityPayload[] {
           day_of_week: dayOfWeek,
           start_time: slot?.start ?? '',
           end_time: slot?.end ?? '',
+          ...buildUtcScheduleWindow(dayOfWeek, slot?.start ?? '', slot?.end ?? ''),
         };
       })
       .filter((payload) => payload.start_time && payload.end_time);
@@ -106,6 +112,7 @@ export default function WeeklyScheduler() {
 
   const selectedDayLabel = WEEK_DAYS.find((day) => day.id === selectedDay)?.label ?? '';
   const payload = useMemo(() => buildPayload(scheduleState), [scheduleState]);
+  const deviceTimeZone = useMemo(() => getDeviceTimeZone(), []);
 
   const toggleSlot = (day: WeekDayId, slotId: TimeSlotId) => {
     setSavedMessageVisible(false);
@@ -319,6 +326,10 @@ export default function WeeklyScheduler() {
                 {payload.length}
                 {TEXT.countSuffix}
               </p>
+            </div>
+            <div className="mb-3 rounded-2xl border border-sky-100 bg-sky-50 px-3 py-2">
+              <p className="text-xs font-black text-sky-700">{TEXT.timezone}</p>
+              <p className="mt-0.5 text-sm font-bold text-slate-600">{deviceTimeZone}</p>
             </div>
             <pre className="max-h-32 overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-950 p-3 text-xs font-semibold leading-5 text-slate-100">
               {JSON.stringify(payload, null, 2)}

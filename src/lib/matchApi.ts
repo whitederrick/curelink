@@ -16,6 +16,8 @@ export type MatchedProvider = {
   tier: string;
   rating_avg: number;
   total_matches: number;
+  acceptance_rate?: number;
+  no_show_count?: number;
   languages_spoken: string[];
   religion: string;
 };

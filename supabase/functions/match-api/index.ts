@@ -122,6 +122,8 @@ serve(async (req) => {
         tier,
         rating_avg,
         total_matches,
+        acceptance_rate,
+        no_show_count,
         languages_spoken,
         religion,
         provider_schedules!inner(
@@ -143,6 +145,8 @@ serve(async (req) => {
     }
 
     const { data: matchedProviders, error } = await query
+      .order('acceptance_rate', { ascending: false })
+      .order('no_show_count', { ascending: true })
       .order('rating_avg', { ascending: false })
       .order('total_matches', { ascending: false })
       .limit(10);
