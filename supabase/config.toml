@@ -1,0 +1,4 @@
+project_id = "curelink"
+
+[functions.match-api]
+verify_jwt = false
