@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CureLink',
-  description: 'Mobile-first CureLink care and medical escort platform.',
+  title: 'CureLink Provider Home',
+  description: 'Mobile-first CureLink crew dashboard.',
 };
 
 export const viewport: Viewport = {

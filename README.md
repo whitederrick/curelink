@@ -9,6 +9,8 @@ CureLink is a mobile-first provider dashboard prototype for discharge care, seni
 - Daily escort/care schedule cards
 - Weekly availability scheduler
 - One-touch care log form with translation-ready structure
+- App Router routes for `/provider`, `/provider/scheduler`, and `/provider/log`
+- Shared enum-to-label mapping dictionary under `src/constants`
 
 ## Stack
 
