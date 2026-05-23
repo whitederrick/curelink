@@ -28,19 +28,24 @@ export type MatchApiResponse = {
 };
 
 export async function fetchMatchedProviders(payload: MatchApiRequest) {
-  const { anonKey, functionsUrl } = assertSupabaseConfig();
+  const { functionsUrl } = assertSupabaseConfig();
 
   const response = await fetch(`${functionsUrl}/match-api`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
     },
     body: JSON.stringify(payload),
   });
 
-  const result = (await response.json()) as MatchApiResponse;
+  const responseText = await response.text();
+  let result: MatchApiResponse;
+
+  try {
+    result = JSON.parse(responseText) as MatchApiResponse;
+  } catch {
+    throw new Error(responseText || 'Matching API returned a non-JSON response.');
+  }
 
   if (!response.ok || !result.success) {
     throw new Error(result.error ?? 'CureLink matching request failed.');

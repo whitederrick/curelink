@@ -87,13 +87,6 @@ serve(async (req) => {
     const supabaseClient = createClient(
       supabaseUrl,
       supabaseServiceRoleKey ?? supabaseAnonKey ?? '',
-      {
-        global: {
-          headers: {
-            Authorization: req.headers.get('Authorization') ?? '',
-          },
-        },
-      },
     );
 
     const body = (await req.json()) as MatchRequestBody;
