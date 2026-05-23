@@ -28,6 +28,22 @@ CureLink is a mobile-first provider dashboard prototype for discharge care, seni
 
 It returns up to 10 available providers sorted by `rating_avg` and `total_matches`.
 
+## Supabase Database
+
+Core schema migrations live under `supabase/migrations`.
+
+- `providers`
+- `provider_schedules`
+- `match_logs`
+
+Apply them with the Supabase CLI:
+
+```bash
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push
+supabase functions deploy match-api
+```
+
 ## Stack
 
 - Next.js App Router
