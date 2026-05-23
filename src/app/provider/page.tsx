@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   UserRoundCheck,
 } from 'lucide-react';
+import MatchApiTester from '@/components/provider/MatchApiTester';
 import {
   CURE_LINK_MAPPING,
   type CareTag,
@@ -19,6 +20,17 @@ import {
   type MatchStatus,
   type Religion,
 } from '@/constants/mapping';
+
+const TEXT = {
+  scheduler: '\uc2dc\uac04 \uc124\uc815',
+  crewSuffix: '\ud06c\ub8e8\ub2d8',
+  withdrawableAmount: '\ucd9c\uae08 \uac00\ub2a5 \uae08\uc561',
+  won: '\uc6d0',
+  safetyScore: '\uc548\uc804 \uc810\uc218',
+  todayCare: '\uc624\ub298\uc758 \uc5d0\uc2a4\ucf54\ud2b8/\ub3cc\ubd04',
+  cases: '\uac74',
+  detailAndLog: '\uc77c\uc9c0 \uc791\uc131 \ubc0f \uc0c1\uc138 \ubcf4\uae30',
+};
 
 const provider = {
   name: 'Alex Kim',
@@ -43,9 +55,9 @@ const todayMatches: Array<{
     id: 'match-001',
     time: '09:00 - 13:00',
     type: 'BRIDGE',
-    patientName: '김OO 어르신',
-    patientDetails: '고관절 수술 퇴원 환자',
-    location: '강남세브란스 병원 -> 대치동 자택',
+    patientName: '\uae40OO \uc5b4\ub974\uc2e0',
+    patientDetails: '\uace0\uad00\uc808 \uc218\uc220 \ud1f4\uc6d0 \ud658\uc790',
+    location: '\uac15\ub0a8\uc138\ube0c\ub780\uc2a4 \ubcd1\uc6d0 -> \ub300\uce58\ub3d9 \uc790\ud0dd',
     religion: 'CHRISTIAN',
     tags: ['MEDICATION', 'WHEELCHAIR'],
     status: 'MATCHED',
@@ -55,8 +67,8 @@ const todayMatches: Array<{
     time: '15:00 - 18:00',
     type: 'TOURISM',
     patientName: 'John Doe',
-    patientDetails: '미국인 외래 환자',
-    location: '신사동 OO 성형외과 -> 호텔',
+    patientDetails: '\ubbf8\uad6d\uc778 \uc678\ub798 \ud658\uc790',
+    location: '\uc2e0\uc0ac\ub3d9 OO \uc131\ud615\uc678\uacfc -> \ud638\ud154',
     religion: 'NONE',
     tags: ['TRANSLATION', 'PICKUP', 'PHARMACY'],
     status: 'ONGOING',
@@ -84,7 +96,7 @@ export default function ProviderHomePage() {
             className="flex min-h-10 items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900 px-3 text-xs font-black text-slate-300 transition active:scale-95"
           >
             <Calendar className="h-3.5 w-3.5 text-sky-400" aria-hidden="true" />
-            시간 설정
+            {TEXT.scheduler}
           </Link>
         </div>
 
@@ -103,7 +115,9 @@ export default function ProviderHomePage() {
               <Award className="h-3 w-3" aria-hidden="true" />
               {provider.tier}
             </div>
-            <h1 className="text-xl font-bold tracking-tight">{provider.name} 크루님</h1>
+            <h1 className="text-xl font-bold tracking-tight">
+              {provider.name} {TEXT.crewSuffix}
+            </h1>
             <p className="mt-1 text-xs font-semibold text-slate-400">{provider.language}</p>
           </div>
         </div>
@@ -115,15 +129,15 @@ export default function ProviderHomePage() {
             <div>
               <p className="flex items-center gap-1.5 text-sm font-bold text-slate-500">
                 <CircleDollarSign className="h-4 w-4 text-sky-500" aria-hidden="true" />
-                출금 가능 금액
+                {TEXT.withdrawableAmount}
               </p>
               <p className="mt-2 text-3xl font-black tracking-tight text-slate-950">
                 {formatKRW(provider.availableAmount)}
-                <span className="ml-1 text-sm font-bold text-slate-500">원</span>
+                <span className="ml-1 text-sm font-bold text-slate-500">{TEXT.won}</span>
               </p>
             </div>
             <div className="rounded-2xl bg-sky-50 px-3 py-2 text-right">
-              <p className="text-xs font-bold text-slate-500">안전 점수</p>
+              <p className="text-xs font-bold text-slate-500">{TEXT.safetyScore}</p>
               <p className="text-lg font-black text-sky-600">{provider.safetyScore}</p>
             </div>
           </div>
@@ -135,11 +149,12 @@ export default function ProviderHomePage() {
           <div>
             <p className="text-sm font-black text-sky-600">Today Schedule</p>
             <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">
-              오늘의 에스코트/돌봄
+              {TEXT.todayCare}
             </h2>
           </div>
           <span className="rounded-full bg-slate-950 px-3 py-1.5 text-xs font-black text-white">
-            {todayMatches.length}건
+            {todayMatches.length}
+            {TEXT.cases}
           </span>
         </div>
 
@@ -195,7 +210,7 @@ export default function ProviderHomePage() {
                     className="flex min-h-12 w-full items-center justify-center gap-1 rounded-2xl bg-slate-950 px-4 text-sm font-black text-white transition active:scale-95"
                   >
                     <UserRoundCheck className="h-4 w-4 text-sky-300" aria-hidden="true" />
-                    일지 작성 및 상세 보기
+                    {TEXT.detailAndLog}
                     <ChevronRight className="h-4 w-4 text-sky-300" aria-hidden="true" />
                   </Link>
                 </div>
@@ -204,6 +219,8 @@ export default function ProviderHomePage() {
           })}
         </div>
       </section>
+
+      <MatchApiTester />
     </main>
   );
 }

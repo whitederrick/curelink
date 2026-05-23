@@ -4,3 +4,4 @@ dist
 out
 *.log
 .env*.local
+supabase/.temp
