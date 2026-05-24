@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.emergency-sos]
 verify_jwt = false
+
+[functions.region-routing]
+verify_jwt = false
+
+[functions.currency-quote]
+verify_jwt = false

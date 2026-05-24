@@ -14,6 +14,13 @@ type RequestBody = {
   location_district?: string;
   identity_verification_required?: boolean;
   legal_disclaimer_agreed?: boolean;
+  customer_country_code?: string;
+  data_region?: 'KR' | 'US' | 'EU' | 'SEA';
+  currency_code?: string;
+  exchange_rate?: number;
+  base_amount_krw?: number;
+  encrypted_medical_passport_ref?: string;
+  sensitive_profile_ref?: string;
 };
 
 const corsHeaders = {
@@ -68,6 +75,13 @@ serve(async (req) => {
         patient_note: body.patient_note?.trim() ?? '',
         total_amount: body.total_amount,
         original_amount: body.total_amount,
+        base_amount_krw: body.base_amount_krw ?? body.total_amount,
+        customer_country_code: body.customer_country_code ?? 'KR',
+        data_region: body.data_region ?? 'KR',
+        currency_code: body.currency_code ?? 'KRW',
+        exchange_rate: body.exchange_rate ?? 1,
+        encrypted_medical_passport_ref: body.encrypted_medical_passport_ref ?? null,
+        sensitive_profile_ref: body.sensitive_profile_ref ?? null,
         location_district: body.location_district ?? null,
         identity_verification_required: body.identity_verification_required ?? body.required_language !== 'ko',
         identity_verification_status: body.identity_verification_required || body.required_language !== 'ko' ? 'PENDING' : 'NOT_REQUIRED',

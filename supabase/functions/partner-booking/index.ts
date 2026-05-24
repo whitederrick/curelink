@@ -15,6 +15,12 @@ type PartnerBookingBody = {
   total_amount?: number;
   quoted_currency?: string;
   location_district?: string;
+  customer_country_code?: string;
+  data_region?: 'KR' | 'US' | 'EU' | 'SEA';
+  exchange_rate?: number;
+  base_amount_krw?: number;
+  encrypted_medical_passport_ref?: string;
+  sensitive_profile_ref?: string;
   hospital_code?: string;
   health_tags?: string[];
   legal_disclaimer_agreed?: boolean;
@@ -26,6 +32,9 @@ type PartnerAgency = {
   partner_code: string;
   api_key_hash: string;
   commission_rate: number;
+  country_code?: string;
+  compliance_region?: string;
+  settlement_currency?: string;
 };
 
 const corsHeaders = {
@@ -112,7 +121,7 @@ serve(async (req) => {
 
     const { data: agency, error: agencyError } = await supabase
       .from('partner_agencies')
-      .select('id, partner_code, api_key_hash, commission_rate')
+      .select('id, partner_code, api_key_hash, commission_rate, country_code, compliance_region, settlement_currency')
       .eq('partner_code', body.partner_code)
       .eq('is_active', true)
       .single();
@@ -146,6 +155,13 @@ serve(async (req) => {
         patient_note: body.patient_note?.trim() ?? '',
         total_amount: body.total_amount,
         original_amount: body.total_amount,
+        base_amount_krw: body.base_amount_krw ?? body.total_amount,
+        customer_country_code: body.customer_country_code ?? agency.country_code ?? 'KR',
+        data_region: body.data_region ?? agency.compliance_region ?? 'KR',
+        currency_code: body.quoted_currency ?? agency.settlement_currency ?? 'KRW',
+        exchange_rate: body.exchange_rate ?? 1,
+        encrypted_medical_passport_ref: body.encrypted_medical_passport_ref ?? null,
+        sensitive_profile_ref: body.sensitive_profile_ref ?? null,
         location_district: body.location_district ?? null,
         quoted_currency: body.quoted_currency ?? 'KRW',
         identity_verification_required: true,
