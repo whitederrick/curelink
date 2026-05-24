@@ -85,14 +85,19 @@ export async function POST(req: Request) {
     const anomalyType = anomalyDetected ? 'READMISSION_RISK' : null;
 
     const { supabaseUrl, serviceRoleKey } = getServerSupabaseConfig();
+    const headers: Record<string, string> = {
+      apikey: serviceRoleKey,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    };
+
+    if (serviceRoleKey.startsWith('eyJ')) {
+      headers.Authorization = `Bearer ${serviceRoleKey}`;
+    }
+
     const response = await fetch(`${supabaseUrl}/rest/v1/ai_agent_insights`, {
       method: 'POST',
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-      },
+      headers,
       body: JSON.stringify({
         match_id: payload.match_id ?? null,
         booking_request_id: payload.booking_request_id ?? null,

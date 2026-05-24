@@ -25,12 +25,17 @@ async function fetchTable(
   table: string,
   query = 'select=*&order=created_at.desc&limit=20',
 ) {
+  const headers: Record<string, string> = {
+    apikey: serviceRoleKey,
+    'Content-Type': 'application/json',
+  };
+
+  if (serviceRoleKey.startsWith('eyJ')) {
+    headers.Authorization = `Bearer ${serviceRoleKey}`;
+  }
+
   const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, {
-    headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
     cache: 'no-store',
   });
 
