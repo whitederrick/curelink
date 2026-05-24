@@ -10,6 +10,7 @@ type MatchRequestBody = {
   required_time_slot?: TimeSlotId;
   required_language?: LanguageCode;
   required_religion?: Religion;
+  client_timezone?: string;
 };
 
 const corsHeaders = {
@@ -54,6 +55,39 @@ function validateRequestBody(body: MatchRequestBody) {
   return null;
 }
 
+function createMatchingClient(req: Request) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const authorization = req.headers.get('Authorization');
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase anon environment variables are missing.');
+  }
+
+  if (authorization?.startsWith('Bearer ')) {
+    return {
+      accessMode: 'rls-authenticated',
+      client: createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: authorization,
+          },
+        },
+      }),
+    };
+  }
+
+  if (!supabaseServiceRoleKey) {
+    throw new Error('Supabase service role key is required for unauthenticated matching.');
+  }
+
+  return {
+    accessMode: 'controlled-service-read',
+    client: createClient(supabaseUrl, supabaseServiceRoleKey),
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -70,25 +104,6 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-
-    if (!supabaseUrl || (!supabaseServiceRoleKey && !supabaseAnonKey)) {
-      return jsonResponse(
-        {
-          success: false,
-          error: 'Supabase environment variables are missing.',
-        },
-        500,
-      );
-    }
-
-    const supabaseClient = createClient(
-      supabaseUrl,
-      supabaseServiceRoleKey ?? supabaseAnonKey ?? '',
-    );
-
     const body = (await req.json()) as MatchRequestBody;
     const validationError = validateRequestBody(body);
 
@@ -110,7 +125,9 @@ serve(async (req) => {
     } = body as Required<Pick<MatchRequestBody, 'required_day' | 'required_time_slot' | 'required_language'>> &
       Pick<MatchRequestBody, 'required_religion'>;
 
+    const { client: supabaseClient, accessMode } = createMatchingClient(req);
     const targetTime = SLOT_TIME_MAP[required_time_slot];
+    const clientTimeZone = body.client_timezone ?? 'Asia/Seoul';
 
     let query = supabaseClient
       .from('providers')
@@ -159,11 +176,14 @@ serve(async (req) => {
       success: true,
       count: matchedProviders?.length ?? 0,
       data: matchedProviders ?? [],
+      access_mode: accessMode,
+      timezone_applied: clientTimeZone,
       filters: {
         required_day,
         required_time_slot,
         required_language,
         required_religion: required_religion ?? null,
+        client_timezone: clientTimeZone,
       },
     });
   } catch (error) {
