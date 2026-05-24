@@ -8,11 +8,13 @@ import {
   CheckCircle,
   Compass,
   CreditCard,
+  Globe2,
   HeartHandshake,
   Languages,
   User,
 } from 'lucide-react';
-import { CURE_LINK_MAPPING, type CareType, type Religion } from '@/constants/mapping';
+import Link from 'next/link';
+import { CURE_LINK_MAPPING, type CareType, type DataRegion, type Religion } from '@/constants/mapping';
 import { callCureLinkFunction } from '@/lib/edgeFunctions';
 
 const PRICE_POLICY = {
@@ -34,23 +36,23 @@ const PRICE_POLICY = {
 const CARE_OPTIONS: Array<{ id: CareType; desc: string }> = [
   {
     id: 'BRIDGE',
-    desc: '대형병원 퇴원 당일 자택 에스코트 및 복약/식사 단기 집중 케어',
+    desc: '대형병원 퇴원 당일 자택 에스코트와 복약, 식사, 단기 집중 케어',
   },
   {
     id: 'TOURISM',
-    desc: '외국인 환자를 위한 공항 픽업, 의료 통역, 호텔 밀착 케어 서비스',
+    desc: '외국인 환자를 위한 공항 픽업, 의료 통역, 병원 밖 생활 동행',
   },
   {
     id: 'EMERGENCY',
-    desc: '갑작스러운 일정 발생 시 필요한 당일 긴급 3시간 돌봄 구호',
+    desc: '갑작스러운 일정 발생 시 필요한 당일 긴급 돌봄 지원',
   },
 ];
 
 const LANGUAGES = [
   { value: 'ko', label: '한국어 (기본 비용)' },
-  { value: 'en', label: 'English (영어 통역 크루 매칭)' },
-  { value: 'vi', label: 'Tiếng Việt (베트남어 통역 크루 매칭)' },
-  { value: 'zh', label: '中文 (중국어 통역 크루 매칭)' },
+  { value: 'en', label: 'English (영어 통역 크루)' },
+  { value: 'vi', label: 'Tiếng Việt (베트남어 통역 크루)' },
+  { value: 'zh', label: '中文 (중국어 통역 크루)' },
 ];
 
 type BookingResponse = {
@@ -61,6 +63,12 @@ type BookingResponse = {
 
 function formatKRW(amount: number) {
   return new Intl.NumberFormat('ko-KR').format(amount);
+}
+
+function inferDataRegion(language: string): DataRegion {
+  if (language === 'en') return 'US';
+  if (language === 'vi' || language === 'zh') return 'SEA';
+  return 'KR';
 }
 
 export default function ConsumerBookingPage() {
@@ -74,6 +82,8 @@ export default function ConsumerBookingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [createdBooking, setCreatedBooking] = useState<BookingResponse | null>(null);
+
+  const dataRegion = inferDataRegion(selectedLang);
 
   const totalAmount = useMemo(() => {
     let surcharge = 0;
@@ -100,12 +110,20 @@ export default function ConsumerBookingPage() {
         patient_name: patientName.trim(),
         patient_note: patientNote.trim(),
         total_amount: totalAmount,
+        base_amount_krw: totalAmount,
+        customer_country_code: selectedLang === 'ko' ? 'KR' : selectedLang === 'vi' ? 'VN' : 'US',
+        data_region: dataRegion,
+        currency_code: 'KRW',
+        exchange_rate: 1,
+        location_district: 'Gangnam-gu',
+        identity_verification_required: selectedLang !== 'ko',
+        legal_disclaimer_agreed: true,
       });
 
       setCreatedBooking(booking);
       setCurrentStep(4);
     } catch (error) {
-      const message = error instanceof Error ? error.message : '예약 신청 저장에 실패했습니다.';
+      const message = error instanceof Error ? error.message : '예약 요청 저장에 실패했습니다.';
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
@@ -116,7 +134,7 @@ export default function ConsumerBookingPage() {
     <main className="min-h-screen bg-slate-50 pb-24 text-slate-900 antialiased">
       <header className="rounded-b-[2rem] bg-slate-950 p-6 text-white shadow-xl">
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-xl font-black tracking-tight text-sky-400">CureLink 매칭 매니저</span>
+          <span className="text-xl font-black tracking-tight text-sky-400">CureLink 예약 매니저</span>
           <span className="text-xs font-bold text-slate-400">
             Step {currentStep === 4 ? 3 : currentStep} / 3
           </span>
@@ -211,6 +229,16 @@ export default function ConsumerBookingPage() {
               </select>
             </label>
 
+            <div className="rounded-2xl border border-sky-100 bg-sky-50 p-3">
+              <p className="flex items-center gap-1 text-xs font-black text-sky-700">
+                <Globe2 className="h-3.5 w-3.5" aria-hidden="true" />
+                글로벌 확장 준비 리전
+              </p>
+              <p className="mt-1 text-sm font-bold text-slate-700">
+                {CURE_LINK_MAPPING.DATA_REGION[dataRegion]} / KRW 기준 견적
+              </p>
+            </div>
+
             <div className="space-y-2">
               <p className="text-xs font-black uppercase tracking-wide text-slate-500">
                 선호 종교 매칭
@@ -258,6 +286,12 @@ export default function ConsumerBookingPage() {
               className="w-full resize-none rounded-3xl border border-slate-200 bg-white p-4 text-sm font-semibold outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
             />
 
+            {errorMessage && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+                {errorMessage}
+              </div>
+            )}
+
             <div className="flex gap-2.5 pt-2">
               <button
                 type="button"
@@ -302,6 +336,7 @@ export default function ConsumerBookingPage() {
                     selectedReligion === 'NONE' ? '상관없음' : CURE_LINK_MAPPING.RELIGION[selectedReligion]
                   }`,
                 ],
+                ['데이터 리전', CURE_LINK_MAPPING.DATA_REGION[dataRegion]],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <span className="text-sm font-bold text-slate-500">{label}</span>
@@ -356,10 +391,10 @@ export default function ConsumerBookingPage() {
             </div>
             <div>
               <h1 className="text-xl font-black tracking-tight text-slate-900">
-                예약 신청이 저장되었습니다
+                예약 요청이 저장되었습니다
               </h1>
               <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-                예약번호 {createdBooking?.id.slice(0, 8)} / 결제 대기 상태로 등록되었습니다.
+                예약번호 {createdBooking?.id.slice(0, 8)} / 결제 대기 상태로 등록했습니다.
               </p>
             </div>
 
@@ -374,16 +409,12 @@ export default function ConsumerBookingPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentStep(1);
-                setCreatedBooking(null);
-              }}
-              className="text-xs font-bold text-slate-400 underline hover:text-slate-600"
+            <Link
+              href="/book/success"
+              className="mx-auto flex min-h-12 max-w-xs items-center justify-center rounded-2xl bg-slate-950 px-5 text-sm font-black text-white transition active:scale-95"
             >
-              처음으로 돌아가기
-            </button>
+              예약 관제 화면 보기
+            </Link>
           </div>
         )}
       </section>

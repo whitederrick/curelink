@@ -1,12 +1,21 @@
-export type MatchStatus = 'PENDING' | 'MATCHED' | 'ONGOING' | 'COMPLETED' | 'CANCELED' | 'TIMEOUT';
+export type MatchStatus =
+  | 'PENDING'
+  | 'MATCHED'
+  | 'ONGOING'
+  | 'COMPLETED'
+  | 'CANCELED'
+  | 'TIMEOUT'
+  | 'EMERGENCY';
+
 export type CareType = 'BRIDGE' | 'TOURISM' | 'EMERGENCY';
 export type Religion = 'CHRISTIAN' | 'BUDDHIST' | 'CATHOLIC' | 'NONE';
 export type CareTag = 'MEDICATION' | 'WHEELCHAIR' | 'TRANSLATION' | 'PICKUP' | 'PHARMACY';
+export type DataRegion = 'KR' | 'US' | 'EU' | 'SEA';
 
 export const CURE_LINK_MAPPING = {
   STATUS: {
     PENDING: {
-      label: '수락 대기',
+      label: '매칭 대기',
       color: 'bg-amber-50 text-amber-700 border-amber-200',
     },
     MATCHED: {
@@ -27,6 +36,10 @@ export const CURE_LINK_MAPPING = {
     },
     TIMEOUT: {
       label: '응답 만료',
+      color: 'bg-rose-50 text-rose-700 border-rose-200',
+    },
+    EMERGENCY: {
+      label: '비상 관제',
       color: 'bg-rose-50 text-rose-700 border-rose-200',
     },
   } satisfies Record<MatchStatus, { label: string; color: string }>,
@@ -51,4 +64,11 @@ export const CURE_LINK_MAPPING = {
     PICKUP: '호텔 픽업',
     PHARMACY: '약국 동행',
   } satisfies Record<CareTag, string>,
+
+  DATA_REGION: {
+    KR: '대한민국 운영 리전',
+    US: '미국 보호 데이터 리전',
+    EU: '유럽 GDPR 데이터 리전',
+    SEA: '동남아 파트너 라우팅 리전',
+  } satisfies Record<DataRegion, string>,
 };
