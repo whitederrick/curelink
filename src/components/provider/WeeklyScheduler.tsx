@@ -84,7 +84,7 @@ const INITIAL_SCHEDULE: ScheduleState = {
   2: { SLOT_MORNING: true },
 };
 
-function buildPayload(scheduleState: ScheduleState): AvailabilityPayload[] {
+function buildPayload(scheduleState: ScheduleState, timeZone: string): AvailabilityPayload[] {
   return Object.entries(scheduleState).flatMap(([dayKey, slots]) => {
     const dayOfWeek = Number(dayKey) as WeekDayId;
 
@@ -97,7 +97,7 @@ function buildPayload(scheduleState: ScheduleState): AvailabilityPayload[] {
           day_of_week: dayOfWeek,
           start_time: slot?.start ?? '',
           end_time: slot?.end ?? '',
-          ...buildUtcScheduleWindow(dayOfWeek, slot?.start ?? '', slot?.end ?? ''),
+          ...buildUtcScheduleWindow(dayOfWeek, slot?.start ?? '', slot?.end ?? '', timeZone),
         };
       })
       .filter((payload) => payload.start_time && payload.end_time);
@@ -116,8 +116,8 @@ export default function WeeklyScheduler() {
   const [saveError, setSaveError] = useState('');
 
   const selectedDayLabel = WEEK_DAYS.find((day) => day.id === selectedDay)?.label ?? '';
-  const payload = useMemo(() => buildPayload(scheduleState), [scheduleState]);
   const deviceTimeZone = useMemo(() => getDeviceTimeZone(), []);
+  const payload = useMemo(() => buildPayload(scheduleState, deviceTimeZone), [scheduleState, deviceTimeZone]);
 
   const toggleSlot = (day: WeekDayId, slotId: TimeSlotId) => {
     setSavedMessageVisible(false);
