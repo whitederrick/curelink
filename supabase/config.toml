@@ -17,3 +17,12 @@ verify_jwt = false
 
 [functions.partner-booking]
 verify_jwt = false
+
+[functions.surge-pricing]
+verify_jwt = false
+
+[functions.verify-passport]
+verify_jwt = false
+
+[functions.emergency-sos]
+verify_jwt = false

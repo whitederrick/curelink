@@ -14,8 +14,10 @@ type PartnerBookingBody = {
   patient_note?: string;
   total_amount?: number;
   quoted_currency?: string;
+  location_district?: string;
   hospital_code?: string;
   health_tags?: string[];
+  legal_disclaimer_agreed?: boolean;
   metadata?: Record<string, unknown>;
 };
 
@@ -143,7 +145,13 @@ serve(async (req) => {
         patient_name: body.patient_name?.trim(),
         patient_note: body.patient_note?.trim() ?? '',
         total_amount: body.total_amount,
+        original_amount: body.total_amount,
+        location_district: body.location_district ?? null,
         quoted_currency: body.quoted_currency ?? 'KRW',
+        identity_verification_required: true,
+        identity_verification_status: 'PENDING',
+        legal_disclaimer_agreed: body.legal_disclaimer_agreed ?? false,
+        legal_disclaimer_agreed_at: body.legal_disclaimer_agreed ? new Date().toISOString() : null,
         partner_metadata: {
           hospital_code: body.hospital_code ?? null,
           health_tags: body.health_tags ?? [],

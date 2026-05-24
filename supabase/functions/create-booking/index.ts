@@ -11,6 +11,9 @@ type RequestBody = {
   patient_name?: string;
   patient_note?: string;
   total_amount?: number;
+  location_district?: string;
+  identity_verification_required?: boolean;
+  legal_disclaimer_agreed?: boolean;
 };
 
 const corsHeaders = {
@@ -64,6 +67,12 @@ serve(async (req) => {
         patient_name: body.patient_name.trim(),
         patient_note: body.patient_note?.trim() ?? '',
         total_amount: body.total_amount,
+        original_amount: body.total_amount,
+        location_district: body.location_district ?? null,
+        identity_verification_required: body.identity_verification_required ?? body.required_language !== 'ko',
+        identity_verification_status: body.identity_verification_required || body.required_language !== 'ko' ? 'PENDING' : 'NOT_REQUIRED',
+        legal_disclaimer_agreed: body.legal_disclaimer_agreed ?? false,
+        legal_disclaimer_agreed_at: body.legal_disclaimer_agreed ? new Date().toISOString() : null,
         status: 'PAYMENT_PENDING',
       })
       .select('*')
