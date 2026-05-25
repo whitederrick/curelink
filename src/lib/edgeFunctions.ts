@@ -1,4 +1,5 @@
 import { assertSupabaseConfig } from '@/lib/supabase';
+import { getStoredSession } from '@/lib/authApi';
 
 type EdgeResponse<T> = {
   success: boolean;
@@ -11,12 +12,19 @@ export async function callCureLinkFunction<T>(
   payload: Record<string, unknown>,
 ): Promise<T> {
   const { functionsUrl } = assertSupabaseConfig();
+  const session = getStoredSession();
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (session?.access_token) {
+    headers.Authorization = `Bearer ${session.access_token}`;
+  }
 
   const response = await fetch(`${functionsUrl}/${functionName}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify(payload),
   });
 

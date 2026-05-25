@@ -12,10 +12,10 @@ export type CureLinkSession = {
 const SESSION_STORAGE_KEY = 'curelink.session';
 
 function getAuthHeaders() {
-  const { anonKey } = assertSupabaseConfig();
+  const { supabaseAnonKey } = assertSupabaseConfig();
 
   return {
-    apikey: anonKey,
+    apikey: supabaseAnonKey,
     'Content-Type': 'application/json',
   };
 }
@@ -45,9 +45,9 @@ export function clearStoredSession() {
 }
 
 export async function signUpWithEmail(email: string, password: string) {
-  const { url } = assertSupabaseConfig();
+  const { supabaseUrl } = assertSupabaseConfig();
 
-  const response = await fetch(`${url}/auth/v1/signup`, {
+  const response = await fetch(`${supabaseUrl}/auth/v1/signup`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ email, password }),
@@ -67,9 +67,9 @@ export async function signUpWithEmail(email: string, password: string) {
 }
 
 export async function signInWithEmail(email: string, password: string) {
-  const { url } = assertSupabaseConfig();
+  const { supabaseUrl } = assertSupabaseConfig();
 
-  const response = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+  const response = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ email, password }),
