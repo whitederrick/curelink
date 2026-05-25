@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Award,
@@ -21,6 +22,24 @@ import {
   type Religion,
 } from '@/constants/mapping';
 
+type ProviderQueueRow = {
+  id: string;
+  care_type: CareType;
+  required_time_slot: 'SLOT_MORNING' | 'SLOT_AFTERNOON' | 'SLOT_NIGHT';
+  required_language: string;
+  required_religion: Religion;
+  requires_wheelchair: boolean;
+  patient_name: string;
+  patient_note: string;
+  total_amount: number;
+  status: string;
+  location_district: string | null;
+  data_region: string;
+  currency_code: string;
+  source_partner_code: string | null;
+  created_at: string;
+};
+
 const TEXT = {
   scheduler: '\uc2dc\uac04 \uc124\uc815',
   crewSuffix: '\ud06c\ub8e8\ub2d8',
@@ -30,6 +49,9 @@ const TEXT = {
   todayCare: '\uc624\ub298\uc758 \uc5d0\uc2a4\ucf54\ud2b8/\ub3cc\ubd04',
   cases: '\uac74',
   detailAndLog: '\uc77c\uc9c0 \uc791\uc131 \ubc0f \uc0c1\uc138 \ubcf4\uae30',
+  loadingSchedule: '실제 예약 큐를 불러오는 중입니다.',
+  emptySchedule: '아직 공급자에게 노출할 예약 요청이 없습니다.',
+  liveQueue: 'Live Booking Queue',
 };
 
 const provider = {
@@ -40,7 +62,7 @@ const provider = {
   safetyScore: 98,
 };
 
-const todayMatches: Array<{
+const demoMatches: Array<{
   id: string;
   time: string;
   type: CareType;
@@ -79,7 +101,91 @@ function formatKRW(amount: number) {
   return new Intl.NumberFormat('ko-KR').format(amount);
 }
 
+function normalizeBookingStatus(status: string): MatchStatus {
+  if (status === 'MATCHED') return 'MATCHED';
+  if (status === 'COMPLETED') return 'COMPLETED';
+  if (status === 'CANCELED') return 'CANCELED';
+  return 'PENDING';
+}
+
+function slotToTimeLabel(slot: ProviderQueueRow['required_time_slot']) {
+  const labels: Record<ProviderQueueRow['required_time_slot'], string> = {
+    SLOT_MORNING: '09:00 - 13:00',
+    SLOT_AFTERNOON: '13:00 - 18:00',
+    SLOT_NIGHT: '18:00 - 22:00',
+  };
+
+  return labels[slot] ?? '시간 협의';
+}
+
+function languageTag(language: string): CareTag | null {
+  return language === 'ko' ? null : 'TRANSLATION';
+}
+
+function toScheduleCard(booking: ProviderQueueRow) {
+  const tags: CareTag[] = [];
+  const maybeLanguageTag = languageTag(booking.required_language);
+
+  if (maybeLanguageTag) tags.push(maybeLanguageTag);
+  if (booking.requires_wheelchair) tags.push('WHEELCHAIR');
+
+  return {
+    id: booking.id,
+    time: slotToTimeLabel(booking.required_time_slot),
+    type: booking.care_type,
+    patientName: booking.patient_name,
+    patientDetails: booking.patient_note || `${booking.data_region} 리전 / ${booking.currency_code} ${formatKRW(booking.total_amount)}`,
+    location: booking.location_district ?? '상세 위치 확인 필요',
+    religion: booking.required_religion,
+    tags,
+    status: normalizeBookingStatus(booking.status),
+  };
+}
+
 export default function ProviderHomePage() {
+  const [bookings, setBookings] = useState<ProviderQueueRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProviderQueue() {
+      try {
+        const response = await fetch('/api/provider/queue', { cache: 'no-store' });
+        const result = (await response.json()) as {
+          success: boolean;
+          data?: ProviderQueueRow[];
+          error?: string;
+        };
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error ?? 'Provider queue request failed.');
+        }
+
+        if (isMounted) setBookings(result.data ?? []);
+      } catch (error) {
+        if (isMounted) {
+          setErrorMessage(error instanceof Error ? error.message : '예약 큐를 불러오지 못했습니다.');
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadProviderQueue();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const todayMatches = useMemo(() => {
+    if (bookings.length > 0) return bookings.map(toScheduleCard);
+    if (errorMessage) return demoMatches;
+    return [];
+  }, [bookings]);
+
   return (
     <main className="min-h-screen bg-slate-50 pb-12 text-slate-900 antialiased">
       <header className="rounded-b-[2rem] bg-slate-950 p-6 text-white shadow-xl shadow-slate-950/10">
@@ -158,6 +264,21 @@ export default function ProviderHomePage() {
           </span>
         </div>
 
+        <div className="mb-4 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs font-bold leading-5 text-slate-600">
+          {isLoading
+            ? TEXT.loadingSchedule
+            : errorMessage
+              ? `${errorMessage} 데모 일정으로 화면을 유지합니다.`
+              : bookings.length === 0
+                ? TEXT.emptySchedule
+                : TEXT.liveQueue}
+        </div>
+
+        {todayMatches.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm font-bold leading-6 text-slate-500">
+            소비자 예약 화면에서 새 요청을 만들면 이곳에 즉시 표시됩니다.
+          </div>
+        ) : (
         <div className="space-y-4">
           {todayMatches.map((match) => {
             const statusConfig = CURE_LINK_MAPPING.STATUS[match.status];
@@ -218,6 +339,7 @@ export default function ProviderHomePage() {
             );
           })}
         </div>
+        )}
       </section>
 
       <MatchApiTester />
