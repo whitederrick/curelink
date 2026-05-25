@@ -59,6 +59,8 @@ const TEXT = {
   submit: '\uc77c\uc9c0 \uc81c\ucd9c\ud558\uae30',
   missingRequired:
     '\uc2dd\uc0ac, \ucee8\ub514\uc158, \ubcf5\uc57d \uc5ec\ubd80\ub97c \ubaa8\ub450 \uccb4\ud06c\ud574 \uc8fc\uc138\uc694.',
+  missingMatch:
+    '\uc120\ud0dd\ub41c \uc608\uc57d\uc774 \uc5c6\uc2b5\ub2c8\ub2e4. \uacf5\uae09\uc790 \ud648\uc5d0\uc11c \uc2e4\uc81c \uc608\uc57d\uc744 \uc120\ud0dd\ud55c \ub4a4 \uc77c\uc9c0\ub97c \uc791\uc131\ud574 \uc8fc\uc138\uc694.',
   submitted:
     '돌봄 일지가 Supabase match_logs에 저장되었습니다.',
   payloadPreview: 'match_logs payload',
@@ -127,12 +129,6 @@ const CONDITION_OPTIONS: Array<{
   },
 ];
 
-const DEFAULT_TARGET_PATIENT = {
-  matchId: 'match-001',
-  name: '\uae40OO \uc5b4\ub974\uc2e0',
-  type: '\ud1f4\uc6d0 \ube0c\ub9bf\uc9c0 \ucf00\uc5b4',
-};
-
 function buildPayload(
   matchId: string,
   mealStatus: MealStatus | '',
@@ -141,7 +137,7 @@ function buildPayload(
   rawLogLang: RawLogLang,
   rawLogText: string,
 ): MatchLogPayload | null {
-  if (!mealStatus || !conditionStatus || medicationChecked === null) {
+  if (!matchId || !mealStatus || !conditionStatus || medicationChecked === null) {
     return null;
   }
 
@@ -167,9 +163,9 @@ export default function CareLogForm({ matchId, patientName, careTypeLabel }: Car
 
   const targetPatient = useMemo(
     () => ({
-      matchId: matchId || DEFAULT_TARGET_PATIENT.matchId,
-      name: patientName || DEFAULT_TARGET_PATIENT.name,
-      type: careTypeLabel || DEFAULT_TARGET_PATIENT.type,
+      matchId: matchId ?? '',
+      name: patientName || '\uc120\ud0dd\ub41c \uc608\uc57d \uc5c6\uc74c',
+      type: careTypeLabel || '\uc2e4\uc81c \uc608\uc57d \uc120\ud0dd \ud544\uc694',
     }),
     [careTypeLabel, matchId, patientName],
   );
@@ -201,7 +197,7 @@ export default function CareLogForm({ matchId, patientName, careTypeLabel }: Car
 
     if (!payload) {
       setSubmittedPayload(null);
-      setErrorMessage(TEXT.missingRequired);
+      setErrorMessage(targetPatient.matchId ? TEXT.missingRequired : TEXT.missingMatch);
       return;
     }
 

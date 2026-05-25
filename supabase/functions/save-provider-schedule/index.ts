@@ -15,8 +15,6 @@ type RequestBody = {
   schedules?: SchedulePayload[];
 };
 
-const DEMO_PROVIDER_ID = '00000000-0000-0000-0000-000000000101';
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -44,28 +42,71 @@ function createServiceClient() {
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
+function extractBearerToken(req: Request) {
+  const authHeader = req.headers.get('authorization') ?? '';
+  const [scheme, token] = authHeader.split(' ');
+
+  return scheme?.toLowerCase() === 'bearer' && token ? token : null;
+}
+
+async function resolveProviderId(
+  supabase: ReturnType<typeof createServiceClient>,
+  req: Request,
+  requestedProviderId?: string,
+) {
+  const token = extractBearerToken(req);
+  if (!token) {
+    return { error: jsonResponse({ success: false, error: 'Unauthorized' }, 403) };
+  }
+
+  const { data: userData, error: userError } = await supabase.auth.getUser(token);
+  if (userError || !userData.user) {
+    return { error: jsonResponse({ success: false, error: 'Unauthorized' }, 403) };
+  }
+
+  let query = supabase
+    .from('providers')
+    .select('id')
+    .eq('user_id', userData.user.id)
+    .eq('is_active', true);
+
+  if (requestedProviderId) {
+    query = query.eq('id', requestedProviderId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  if (!data?.id) {
+    return { error: jsonResponse({ success: false, error: 'Provider profile is required.' }, 403) };
+  }
+
+  return { providerId: data.id };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ success: false, error: 'Use POST.' }, 405);
 
   try {
-    const { provider_id = DEMO_PROVIDER_ID, schedules = [] } = (await req.json()) as RequestBody;
+    const { provider_id, schedules = [] } = (await req.json()) as RequestBody;
 
     if (!Array.isArray(schedules)) {
       return jsonResponse({ success: false, error: 'schedules must be an array.' }, 400);
     }
 
     const supabase = createServiceClient();
+    const resolvedProvider = await resolveProviderId(supabase, req, provider_id);
+    if (resolvedProvider.error) return resolvedProvider.error;
 
     const { error: deleteError } = await supabase
       .from('provider_schedules')
       .delete()
-      .eq('provider_id', provider_id);
+      .eq('provider_id', resolvedProvider.providerId);
 
     if (deleteError) throw deleteError;
 
     const rows = schedules.map((schedule) => ({
-      provider_id,
+      provider_id: resolvedProvider.providerId,
       day_of_week: schedule.day_of_week,
       start_time: schedule.start_time,
       end_time: schedule.end_time,
