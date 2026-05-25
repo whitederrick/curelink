@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdminRole } from '@/lib/adminAuth';
 
 type AdminActionBody = {
   action?: 'RESOLVE_BOOKING_ISSUE' | 'APPROVE_PARTNER' | 'APPROVE_DID_CREDENTIAL';
@@ -55,6 +56,9 @@ async function patchById(
 
 export async function POST(req: Request) {
   try {
+    const unauthorizedResponse = await requireAdminRole(req);
+    if (unauthorizedResponse) return unauthorizedResponse;
+
     const body = (await req.json()) as AdminActionBody;
 
     if (!body.action || !body.id) {

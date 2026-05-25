@@ -21,6 +21,7 @@ import {
   type MatchStatus,
   type Religion,
 } from '@/constants/mapping';
+import { getStoredSession } from '@/lib/authApi';
 
 type ProviderQueueRow = {
   id: string;
@@ -152,7 +153,11 @@ export default function ProviderHomePage() {
 
     async function loadProviderQueue() {
       try {
-        const response = await fetch('/api/provider/queue', { cache: 'no-store' });
+        const session = getStoredSession();
+        const response = await fetch('/api/provider/queue', {
+          cache: 'no-store',
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        });
         const result = (await response.json()) as {
           success: boolean;
           data?: ProviderQueueRow[];

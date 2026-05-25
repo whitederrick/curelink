@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdminRole } from '@/lib/adminAuth';
 
 type TableResult = {
   bookings: unknown[];
@@ -47,8 +48,11 @@ async function fetchTable(
   return response.json();
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const unauthorizedResponse = await requireAdminRole(req);
+    if (unauthorizedResponse) return unauthorizedResponse;
+
     const { supabaseUrl, serviceRoleKey } = getServerSupabaseConfig();
 
     const [bookings, aiInsights, emergencyEvents, partners, didCredentials] = await Promise.all([

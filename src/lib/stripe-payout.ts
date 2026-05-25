@@ -1,6 +1,9 @@
 type PayoutRequest = {
   matchId: string;
-  totalAmountUsd: number;
+  totalAmount?: number;
+  totalAmountUsd?: number;
+  currency_code?: string;
+  currencyCode?: string;
   crewStripeAccountId: string;
   partnerStripeAccountId?: string;
   crewShareRate: number;
@@ -15,6 +18,24 @@ type StripeTransferResult = {
 };
 
 const STRIPE_API_BASE = 'https://api.stripe.com/v1';
+const ZERO_DECIMAL_CURRENCIES = new Set([
+  'BIF',
+  'CLP',
+  'DJF',
+  'GNF',
+  'JPY',
+  'KMF',
+  'KRW',
+  'MGA',
+  'PYG',
+  'RWF',
+  'UGX',
+  'VND',
+  'VUV',
+  'XAF',
+  'XOF',
+  'XPF',
+]);
 
 function getStripeSecretKey() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -26,23 +47,28 @@ function getStripeSecretKey() {
   return secretKey;
 }
 
-function toUsdCents(amountUsd: number) {
-  if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
+function toStripeMinorUnits(amount: number, currencyCode: string) {
+  if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error('Payout amount must be a positive number.');
   }
 
-  return Math.round(amountUsd * 100);
+  const normalizedCurrency = currencyCode.toUpperCase();
+
+  return ZERO_DECIMAL_CURRENCIES.has(normalizedCurrency)
+    ? Math.round(amount)
+    : Math.round(amount * 100);
 }
 
 async function createStripeTransfer(params: {
   amount: number;
+  currency: string;
   destination: string;
   transferGroup: string;
   description: string;
 }) {
   const body = new URLSearchParams({
     amount: String(params.amount),
-    currency: 'usd',
+    currency: params.currency.toLowerCase(),
     destination: params.destination,
     transfer_group: params.transferGroup,
     description: params.description,
@@ -69,12 +95,21 @@ async function createStripeTransfer(params: {
 export async function executeGlobalPayout(params: PayoutRequest) {
   const {
     matchId,
+    totalAmount,
     totalAmountUsd,
+    currency_code,
+    currencyCode,
     crewStripeAccountId,
     partnerStripeAccountId,
     crewShareRate,
     partnerShareRate = 0,
   } = params;
+  const settlementCurrency = (currency_code ?? currencyCode ?? 'USD').toUpperCase();
+  const payoutAmount = totalAmount ?? totalAmountUsd;
+
+  if (payoutAmount === undefined) {
+    throw new Error('totalAmount is required for global payouts.');
+  }
 
   if (crewShareRate <= 0 || crewShareRate > 1) {
     throw new Error('crewShareRate must be between 0 and 1.');
@@ -89,7 +124,8 @@ export async function executeGlobalPayout(params: PayoutRequest) {
   }
 
   const crewTransfer = await createStripeTransfer({
-    amount: toUsdCents(totalAmountUsd * crewShareRate),
+    amount: toStripeMinorUnits(payoutAmount * crewShareRate, settlementCurrency),
+    currency: settlementCurrency,
     destination: crewStripeAccountId,
     transferGroup: matchId,
     description: `CureLink crew payout - ${matchId}`,
@@ -98,7 +134,8 @@ export async function executeGlobalPayout(params: PayoutRequest) {
   const partnerTransfer =
     partnerStripeAccountId && partnerShareRate > 0
       ? await createStripeTransfer({
-          amount: toUsdCents(totalAmountUsd * partnerShareRate),
+          amount: toStripeMinorUnits(payoutAmount * partnerShareRate, settlementCurrency),
+          currency: settlementCurrency,
           destination: partnerStripeAccountId,
           transferGroup: matchId,
           description: `CureLink partner commission - ${matchId}`,
@@ -110,9 +147,11 @@ export async function executeGlobalPayout(params: PayoutRequest) {
     match_id: matchId,
     crew_transfer_id: crewTransfer.id,
     partner_transfer_id: partnerTransfer?.id ?? null,
-    crew_amount_cents: crewTransfer.amount,
-    partner_amount_cents: partnerTransfer?.amount ?? 0,
-    currency: 'usd',
+    crew_amount_minor_units: crewTransfer.amount,
+    partner_amount_minor_units: partnerTransfer?.amount ?? 0,
+    crew_amount_cents: settlementCurrency === 'USD' ? crewTransfer.amount : null,
+    partner_amount_cents: settlementCurrency === 'USD' ? partnerTransfer?.amount ?? 0 : null,
+    currency: settlementCurrency.toLowerCase(),
     processed_at: new Date().toISOString(),
   };
 }

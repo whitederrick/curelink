@@ -11,6 +11,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { CURE_LINK_MAPPING, type CareType, type MatchStatus } from '@/constants/mapping';
+import { getStoredSession } from '@/lib/authApi';
 
 type BookingRequest = {
   id: string;
@@ -53,7 +54,11 @@ export default function AdminOperationsPage() {
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/admin/overview', { cache: 'no-store' });
+      const session = getStoredSession();
+      const response = await fetch('/api/admin/overview', {
+        cache: 'no-store',
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      });
       const result = await response.json();
 
       if (!response.ok || !result.success) {
@@ -80,10 +85,12 @@ export default function AdminOperationsPage() {
     setErrorMessage('');
 
     try {
+      const session = getStoredSession();
       const response = await fetch('/api/admin/actions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({ action, id }),
       });

@@ -38,6 +38,71 @@ function createServiceClient() {
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
+function runBackgroundTask(task: Promise<unknown>) {
+  const runtime = globalThis as typeof globalThis & {
+    EdgeRuntime?: {
+      waitUntil?: (promise: Promise<unknown>) => void;
+    };
+  };
+
+  if (runtime.EdgeRuntime?.waitUntil) {
+    runtime.EdgeRuntime.waitUntil(task);
+    return;
+  }
+
+  task.catch((error) => {
+    console.error('Emergency background task failed', error);
+  });
+}
+
+async function dispatchHospitalWebhook(params: {
+  supabase: ReturnType<typeof createServiceClient>;
+  emergencyEventId: string;
+  webhookUrl: string;
+  payload: Record<string, unknown>;
+}) {
+  try {
+    const response = await fetch(params.webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params.payload),
+    });
+
+    await params.supabase
+      .from('webhook_deliveries')
+      .update({
+        delivery_status: response.ok ? 'SUCCESS' : 'FAILED',
+        response_status: response.status,
+      })
+      .eq('emergency_event_id', params.emergencyEventId)
+      .eq('destination_type', 'HOSPITAL_WEBHOOK');
+  } catch (webhookError) {
+    const message = webhookError instanceof Error ? webhookError.message : 'Unknown webhook error.';
+
+    await params.supabase
+      .from('webhook_deliveries')
+      .update({
+        delivery_status: 'FAILED',
+        error_message: message,
+      })
+      .eq('emergency_event_id', params.emergencyEventId)
+      .eq('destination_type', 'HOSPITAL_WEBHOOK');
+  }
+}
+
+async function scheduleGuardianAlert(params: {
+  supabase: ReturnType<typeof createServiceClient>;
+  guardianDeliveryId: string;
+}) {
+  await params.supabase
+    .from('webhook_deliveries')
+    .update({
+      delivery_status: 'PENDING',
+      error_message: 'Queued for guardian notification worker integration.',
+    })
+    .eq('id', params.guardianDeliveryId);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ success: false, error: 'Use POST.' }, 405);
@@ -114,55 +179,38 @@ serve(async (req) => {
         .maybeSingle();
 
       if (hospitalWebhook?.webhook_url) {
-        try {
-          const response = await fetch(hospitalWebhook.webhook_url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              event: 'PATIENT_EMERGENCY_SOS',
-              timestamp: new Date().toISOString(),
-              curelink_emergency_event_id: event.id,
-              curelink_match_log_id: body.match_log_id ?? null,
-              curelink_booking_request_id: body.booking_request_id ?? null,
-              patient_name: body.patient_name,
-              assigned_crew: body.crew_name,
-              gps: {
-                latitude: body.current_latitude,
-                longitude: body.current_longitude,
-              },
-              incident_report: body.emergency_memo ?? '',
-            }),
-          });
+        const { data: delivery } = await supabase
+          .from('webhook_deliveries')
+          .insert({
+            emergency_event_id: event.id,
+            destination_type: 'HOSPITAL_WEBHOOK',
+            destination_url: hospitalWebhook.webhook_url,
+            delivery_status: 'PENDING',
+          })
+          .select('id, delivery_status')
+          .single();
 
-          const { data: delivery } = await supabase
-            .from('webhook_deliveries')
-            .insert({
-              emergency_event_id: event.id,
-              destination_type: 'HOSPITAL_WEBHOOK',
-              destination_url: hospitalWebhook.webhook_url,
-              delivery_status: response.ok ? 'SUCCESS' : 'FAILED',
-              response_status: response.status,
-            })
-            .select('id, delivery_status, response_status')
-            .single();
+        hospitalDelivery = delivery;
 
-          hospitalDelivery = delivery;
-        } catch (webhookError) {
-          const message = webhookError instanceof Error ? webhookError.message : 'Unknown webhook error.';
-          const { data: delivery } = await supabase
-            .from('webhook_deliveries')
-            .insert({
-              emergency_event_id: event.id,
-              destination_type: 'HOSPITAL_WEBHOOK',
-              destination_url: hospitalWebhook.webhook_url,
-              delivery_status: 'FAILED',
-              error_message: message,
-            })
-            .select('id, delivery_status, error_message')
-            .single();
-
-          hospitalDelivery = delivery;
-        }
+        runBackgroundTask(dispatchHospitalWebhook({
+          supabase,
+          emergencyEventId: event.id,
+          webhookUrl: hospitalWebhook.webhook_url,
+          payload: {
+            event: 'PATIENT_EMERGENCY_SOS',
+            timestamp: new Date().toISOString(),
+            curelink_emergency_event_id: event.id,
+            curelink_match_log_id: body.match_log_id ?? null,
+            curelink_booking_request_id: body.booking_request_id ?? null,
+            patient_name: body.patient_name,
+            assigned_crew: body.crew_name,
+            gps: {
+              latitude: body.current_latitude,
+              longitude: body.current_longitude,
+            },
+            incident_report: body.emergency_memo ?? '',
+          },
+        }));
       }
     }
 
@@ -170,11 +218,18 @@ serve(async (req) => {
       .from('webhook_deliveries')
       .insert({
         emergency_event_id: event.id,
-        destination_type: 'GUARDIAN_ALERT_PLACEHOLDER',
+        destination_type: 'GUARDIAN_ALERT_QUEUE',
         delivery_status: 'PENDING',
       })
       .select('id, delivery_status')
       .single();
+
+    if (guardianDelivery?.id) {
+      runBackgroundTask(scheduleGuardianAlert({
+        supabase,
+        guardianDeliveryId: guardianDelivery.id,
+      }));
+    }
 
     return jsonResponse({
       success: true,

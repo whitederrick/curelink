@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { encryptSensitiveData } from '@/utils/crypto';
 
 type CareLogPayload = {
   match_id?: string;
@@ -21,8 +22,16 @@ function getServerSupabaseConfig() {
   return { supabaseUrl, serviceRoleKey };
 }
 
+function maskPatientIdentifiers(text: string) {
+  return text
+    .replace(/\b\d{2,4}[-.\s]?\d{3,4}[-.\s]?\d{4}\b/g, '[PHONE]')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[EMAIL]')
+    .replace(/\b\d{6}[-\s]?\d{7}\b/g, '[NATIONAL_ID]');
+}
+
 function buildMedicalReport(payload: CareLogPayload) {
   const rawText = payload.raw_log_text?.trim() || '특이사항 없음';
+  const maskedText = maskPatientIdentifiers(rawText);
   const suspectedEdema = /부종|swelling|edema|sưng|sung/i.test(rawText);
   const painSignal = /통증|pain|đau|ache/i.test(rawText);
 
@@ -34,7 +43,8 @@ function buildMedicalReport(payload: CareLogPayload) {
     clinical_observation: {
       suspected_edema: suspectedEdema,
       pain_signal: painSignal,
-      raw_note_excerpt: rawText.slice(0, 240),
+      raw_note_excerpt_encrypted: encryptSensitiveData(maskedText.slice(0, 240)),
+      raw_note_excerpt_encryption: 'aes-256-gcm:v1',
     },
     suggested_action:
       suspectedEdema || painSignal

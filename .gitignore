@@ -5,3 +5,5 @@ out
 *.log
 .env*.local
 supabase/.temp
+.codex-home
+.codex-tools

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAnyRole } from '@/lib/adminAuth';
 
 type BookingQueueRow = {
   id: string;
@@ -42,8 +43,11 @@ function getServiceHeaders(serviceRoleKey: string) {
   return headers;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const unauthorizedResponse = await requireAnyRole(req, ['PROVIDER', 'ADMIN']);
+    if (unauthorizedResponse) return unauthorizedResponse;
+
     const { supabaseUrl, serviceRoleKey } = getServerSupabaseConfig();
     const params = new URLSearchParams({
       select:

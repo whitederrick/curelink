@@ -84,19 +84,13 @@ serve(async (req) => {
     }
 
     if (body.action === 'accept') {
-      const { data, error } = await supabase
-        .from('match_logs')
-        .update({
-          status: 'MATCHED',
-          accepted_at: new Date().toISOString(),
-        })
-        .eq('id', body.match_id)
-        .eq('status', 'PENDING')
-        .gt('expires_at', new Date().toISOString())
-        .select('id, provider_id, status, accepted_at')
-        .maybeSingle();
+      const { data: acceptedRows, error } = await supabase.rpc('accept_pending_match', {
+        p_match_id: body.match_id,
+      });
 
       if (error) throw error;
+
+      const data = Array.isArray(acceptedRows) ? acceptedRows[0] : null;
 
       if (!data) {
         return jsonResponse({

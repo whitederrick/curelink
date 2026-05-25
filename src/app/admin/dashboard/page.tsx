@@ -12,6 +12,7 @@ import {
   Users2,
 } from 'lucide-react';
 import { CURE_LINK_MAPPING, type CareType, type DataRegion, type MatchStatus } from '@/constants/mapping';
+import { getStoredSession } from '@/lib/authApi';
 
 type BookingRequest = {
   id: string;
@@ -71,7 +72,11 @@ export default function AdminControlTower() {
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/admin/overview', { cache: 'no-store' });
+      const session = getStoredSession();
+      const response = await fetch('/api/admin/overview', {
+        cache: 'no-store',
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      });
       const result = await response.json();
 
       if (!response.ok || !result.success) {
