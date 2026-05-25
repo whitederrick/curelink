@@ -17,6 +17,8 @@ import Link from 'next/link';
 import { CURE_LINK_MAPPING, type CareType, type DataRegion, type Religion } from '@/constants/mapping';
 import { callCureLinkFunction } from '@/lib/edgeFunctions';
 
+const LATEST_BOOKING_STORAGE_KEY = 'curelink.latestBooking';
+
 const PRICE_POLICY = {
   BASE: {
     BRIDGE: 80000,
@@ -36,15 +38,15 @@ const PRICE_POLICY = {
 const CARE_OPTIONS: Array<{ id: CareType; desc: string }> = [
   {
     id: 'BRIDGE',
-    desc: '대형병원 퇴원 당일 자택 에스코트와 복약, 식사, 단기 집중 케어',
+    desc: '퇴원 당일 병원에서 자택까지 동행하고 복약, 식사, 이동을 단기 집중 케어합니다.',
   },
   {
     id: 'TOURISM',
-    desc: '외국인 환자를 위한 공항 픽업, 의료 통역, 병원 밖 생활 동행',
+    desc: '외국인 환자의 병원 방문, 의료 통역, 호텔 이동과 생활 동행을 지원합니다.',
   },
   {
     id: 'EMERGENCY',
-    desc: '갑작스러운 일정 발생 시 필요한 당일 긴급 돌봄 지원',
+    desc: '갑작스러운 일정 공백이나 보호자 부재 시 필요한 긴급 돌봄을 연결합니다.',
   },
 ];
 
@@ -57,8 +59,20 @@ const LANGUAGES = [
 
 type BookingResponse = {
   id: string;
-  status: string;
+  care_type: CareType;
+  patient_name: string;
+  patient_note?: string;
+  required_language: string;
+  required_religion: Religion;
+  requires_wheelchair: boolean;
   total_amount: number;
+  status: string;
+  data_region: DataRegion;
+  currency_code: string;
+  exchange_rate: number;
+  location_district?: string;
+  source_partner_code?: string | null;
+  created_at?: string;
 };
 
 function formatKRW(amount: number) {
@@ -120,6 +134,7 @@ export default function ConsumerBookingPage() {
         legal_disclaimer_agreed: true,
       });
 
+      window.sessionStorage.setItem(LATEST_BOOKING_STORAGE_KEY, JSON.stringify(booking));
       setCreatedBooking(booking);
       setCurrentStep(4);
     } catch (error) {
@@ -345,7 +360,7 @@ export default function ConsumerBookingPage() {
               ))}
 
               <div className="flex items-center justify-between pt-2">
-                <span className="text-base font-black text-slate-900">최종 청구 정찰액</span>
+                <span className="text-base font-black text-slate-900">최종 결제 예정액</span>
                 <span className="text-xl font-black tracking-tight text-sky-600">
                   {formatKRW(totalAmount)}
                   <span className="ml-1 text-xs font-bold text-slate-400">원</span>
@@ -355,7 +370,8 @@ export default function ConsumerBookingPage() {
 
             <div className="flex gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-xs font-semibold leading-5 text-amber-800">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
-              결제 승인 후 10분 수락 제안 정책에 따라 최적 크루에게 순차적으로 제안이 발송됩니다.
+              화면의 금액은 안내용입니다. 실제 저장 금액은 백엔드가 동일한 가격 정책으로 다시 계산해
+              위조 요청을 차단합니다.
             </div>
 
             {errorMessage && (
@@ -394,13 +410,13 @@ export default function ConsumerBookingPage() {
                 예약 요청이 저장되었습니다
               </h1>
               <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-                예약번호 {createdBooking?.id.slice(0, 8)} / 결제 대기 상태로 등록했습니다.
+                예약번호 {createdBooking?.id.slice(0, 8)} / 결제 대기 상태로 등록되었습니다.
               </p>
             </div>
 
             <div className="mx-auto max-w-xs space-y-2 rounded-3xl border border-slate-200 bg-white p-4 text-left text-xs font-bold text-slate-500">
               <div className="flex justify-between">
-                <span>정찰 금액</span>
+                <span>확정 금액</span>
                 <span className="text-sky-600">{formatKRW(createdBooking?.total_amount ?? totalAmount)}원</span>
               </div>
               <div className="flex justify-between">
@@ -410,7 +426,7 @@ export default function ConsumerBookingPage() {
             </div>
 
             <Link
-              href="/book/success"
+              href={createdBooking ? `/book/success?id=${createdBooking.id}` : '/book/success'}
               className="mx-auto flex min-h-12 max-w-xs items-center justify-center rounded-2xl bg-slate-950 px-5 text-sm font-black text-white transition active:scale-95"
             >
               예약 관제 화면 보기
