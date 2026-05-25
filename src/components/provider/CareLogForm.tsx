@@ -30,6 +30,12 @@ type MatchLogPayload = {
   raw_log_text: string;
 };
 
+type SubmittedCareLog = {
+  id: string;
+  external_match_key?: string;
+  status?: string;
+};
+
 const TEXT = {
   sectionLabel: 'Care Log',
   titleSuffix: '\uc77c\uc9c0 \uc791\uc131',
@@ -178,7 +184,24 @@ export default function CareLogForm() {
     setErrorMessage('');
 
     try {
-      await callCureLinkFunction('submit-care-log', payload);
+      const careLog = await callCureLinkFunction<SubmittedCareLog>('submit-care-log', payload);
+
+      const aiResponse = await fetch('/api/ai-agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...payload,
+          match_id: careLog.id,
+        }),
+      });
+
+      const aiResult = await aiResponse.json();
+      if (!aiResponse.ok || !aiResult.success) {
+        throw new Error(aiResult.error ?? 'AI insight generation failed.');
+      }
+
       setSubmittedPayload(payload);
     } catch (error) {
       const message = error instanceof Error ? error.message : TEXT.submitError;

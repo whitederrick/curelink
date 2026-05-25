@@ -44,6 +44,7 @@ export default function AdminOperationsPage() {
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [resolvedIds, setResolvedIds] = useState<string[]>([]);
   const [approvedIds, setApprovedIds] = useState<string[]>([]);
+  const [actionIds, setActionIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -70,6 +71,41 @@ export default function AdminOperationsPage() {
   useEffect(() => {
     void loadOverview();
   }, []);
+
+  const runAdminAction = async (
+    action: 'RESOLVE_BOOKING_ISSUE' | 'APPROVE_PARTNER' | 'APPROVE_DID_CREDENTIAL',
+    id: string,
+  ) => {
+    setActionIds((prev) => [...prev, id]);
+    setErrorMessage('');
+
+    try {
+      const response = await fetch('/api/admin/actions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action, id }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error ?? '관리자 작업 처리에 실패했습니다.');
+      }
+
+      if (action === 'RESOLVE_BOOKING_ISSUE') {
+        setResolvedIds((prev) => [...prev, id]);
+      } else {
+        setApprovedIds((prev) => [...prev, id]);
+      }
+
+      await loadOverview();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '관리자 작업 처리 중 오류가 발생했습니다.');
+    } finally {
+      setActionIds((prev) => prev.filter((actionId) => actionId !== id));
+    }
+  };
 
   const issueBookings = useMemo(() => {
     return (overview?.bookings ?? [])
@@ -176,10 +212,11 @@ export default function AdminOperationsPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setResolvedIds((prev) => [...prev, booking.id])}
+                        disabled={actionIds.includes(booking.id)}
+                        onClick={() => void runAdminAction('RESOLVE_BOOKING_ISSUE', booking.id)}
                         className="rounded-xl bg-sky-500 px-3 py-2 text-[11px] font-black text-white transition hover:bg-sky-600 active:scale-95"
                       >
-                        운영 처리 완료
+                        {actionIds.includes(booking.id) ? '처리 중' : '운영 처리 완료'}
                       </button>
                     </div>
                   </article>
@@ -221,10 +258,16 @@ export default function AdminOperationsPage() {
                     {!isApproved ? (
                       <button
                         type="button"
-                        onClick={() => setApprovedIds((prev) => [...prev, item.id])}
+                        disabled={actionIds.includes(item.id)}
+                        onClick={() =>
+                          void runAdminAction(
+                            item.type === 'AGENCY' ? 'APPROVE_PARTNER' : 'APPROVE_DID_CREDENTIAL',
+                            item.id,
+                          )
+                        }
                         className="shrink-0 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-[11px] font-black text-slate-200 transition hover:bg-slate-800 active:scale-95"
                       >
-                        승인 처리
+                        {actionIds.includes(item.id) ? '처리 중' : '승인 처리'}
                       </button>
                     ) : (
                       <span className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-emerald-900/50 bg-emerald-950/30 px-2 py-1 text-[11px] font-black text-emerald-400">
