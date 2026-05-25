@@ -52,6 +52,7 @@ export async function GET(req: Request) {
     const params = new URLSearchParams({
       select:
         'id,care_type,required_time_slot,required_language,required_religion,requires_wheelchair,patient_name,patient_note,total_amount,status,location_district,data_region,currency_code,source_partner_code,created_at',
+      status: 'in.(PAYMENT_PENDING,PAID,MATCHING,PENDING)',
       order: 'created_at.desc',
       limit: '10',
     });
