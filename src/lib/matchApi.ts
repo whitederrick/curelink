@@ -1,3 +1,4 @@
+import { getStoredSession } from '@/lib/authApi';
 import { assertSupabaseConfig } from '@/lib/supabase';
 
 export type RequiredTimeSlot = 'SLOT_MORNING' | 'SLOT_AFTERNOON' | 'SLOT_NIGHT';
@@ -31,12 +32,19 @@ export type MatchApiResponse = {
 
 export async function fetchMatchedProviders(payload: MatchApiRequest) {
   const { functionsUrl } = assertSupabaseConfig();
+  const session = getStoredSession();
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (session?.access_token) {
+    headers.Authorization = `Bearer ${session.access_token}`;
+  }
 
   const response = await fetch(`${functionsUrl}/match-api`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify(payload),
   });
 

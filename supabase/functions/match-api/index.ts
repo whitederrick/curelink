@@ -58,33 +58,25 @@ function validateRequestBody(body: MatchRequestBody) {
 function createMatchingClient(req: Request) {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-  const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const authorization = req.headers.get('Authorization');
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase anon environment variables are missing.');
   }
 
-  if (authorization?.startsWith('Bearer ')) {
-    return {
-      accessMode: 'rls-authenticated',
-      client: createClient(supabaseUrl, supabaseAnonKey, {
-        global: {
-          headers: {
-            Authorization: authorization,
-          },
-        },
-      }),
-    };
-  }
-
-  if (!supabaseServiceRoleKey) {
-    throw new Error('Supabase service role key is required for unauthenticated matching.');
+  if (!authorization?.startsWith('Bearer ')) {
+    throw new Error('Authentication is required for provider matching.');
   }
 
   return {
-    accessMode: 'controlled-service-read',
-    client: createClient(supabaseUrl, supabaseServiceRoleKey),
+    accessMode: 'rls-authenticated',
+    client: createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authorization,
+        },
+      },
+    }),
   };
 }
 
