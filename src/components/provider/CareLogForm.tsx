@@ -36,6 +36,12 @@ type SubmittedCareLog = {
   status?: string;
 };
 
+type CareLogFormProps = {
+  matchId?: string;
+  patientName?: string;
+  careTypeLabel?: string;
+};
+
 const TEXT = {
   sectionLabel: 'Care Log',
   titleSuffix: '\uc77c\uc9c0 \uc791\uc131',
@@ -121,13 +127,14 @@ const CONDITION_OPTIONS: Array<{
   },
 ];
 
-const targetPatient = {
+const DEFAULT_TARGET_PATIENT = {
   matchId: 'match-001',
   name: '\uae40OO \uc5b4\ub974\uc2e0',
   type: '\ud1f4\uc6d0 \ube0c\ub9bf\uc9c0 \ucf00\uc5b4',
 };
 
 function buildPayload(
+  matchId: string,
   mealStatus: MealStatus | '',
   conditionStatus: ConditionStatus | '',
   medicationChecked: boolean | null,
@@ -139,7 +146,7 @@ function buildPayload(
   }
 
   return {
-    match_id: targetPatient.matchId,
+    match_id: matchId,
     meal_status: mealStatus,
     condition_status: conditionStatus,
     medication_checked: medicationChecked,
@@ -148,7 +155,7 @@ function buildPayload(
   };
 }
 
-export default function CareLogForm() {
+export default function CareLogForm({ matchId, patientName, careTypeLabel }: CareLogFormProps) {
   const [mealStatus, setMealStatus] = useState<MealStatus | ''>('');
   const [conditionStatus, setConditionStatus] = useState<ConditionStatus | ''>('');
   const [medicationChecked, setMedicationChecked] = useState<boolean | null>(null);
@@ -158,15 +165,33 @@ export default function CareLogForm() {
   const [submittedPayload, setSubmittedPayload] = useState<MatchLogPayload | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const targetPatient = useMemo(
+    () => ({
+      matchId: matchId || DEFAULT_TARGET_PATIENT.matchId,
+      name: patientName || DEFAULT_TARGET_PATIENT.name,
+      type: careTypeLabel || DEFAULT_TARGET_PATIENT.type,
+    }),
+    [careTypeLabel, matchId, patientName],
+  );
+
   const livePayload = useMemo(
-    () => buildPayload(mealStatus, conditionStatus, medicationChecked, rawLogLang, rawLogText),
-    [conditionStatus, mealStatus, medicationChecked, rawLogLang, rawLogText],
+    () =>
+      buildPayload(
+        targetPatient.matchId,
+        mealStatus,
+        conditionStatus,
+        medicationChecked,
+        rawLogLang,
+        rawLogText,
+      ),
+    [conditionStatus, mealStatus, medicationChecked, rawLogLang, rawLogText, targetPatient.matchId],
   );
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const payload = buildPayload(
+      targetPatient.matchId,
       mealStatus,
       conditionStatus,
       medicationChecked,

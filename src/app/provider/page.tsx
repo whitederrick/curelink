@@ -282,6 +282,9 @@ export default function ProviderHomePage() {
         <div className="space-y-4">
           {todayMatches.map((match) => {
             const statusConfig = CURE_LINK_MAPPING.STATUS[match.status];
+            const logHref = `/provider/log?id=${encodeURIComponent(match.id)}&patient=${encodeURIComponent(
+              match.patientName,
+            )}&type=${encodeURIComponent(CURE_LINK_MAPPING.CARE_TYPE[match.type])}`;
 
             return (
               <article
@@ -327,7 +330,7 @@ export default function ProviderHomePage() {
 
                 <div className="mt-5 border-t border-slate-100 pt-4">
                   <Link
-                    href={`/provider/log?id=${match.id}`}
+                    href={logHref}
                     className="flex min-h-12 w-full items-center justify-center gap-1 rounded-2xl bg-slate-950 px-4 text-sm font-black text-white transition active:scale-95"
                   >
                     <UserRoundCheck className="h-4 w-4 text-sky-300" aria-hidden="true" />

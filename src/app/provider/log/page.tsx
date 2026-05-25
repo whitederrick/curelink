@@ -1,8 +1,27 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import CareLogForm from '@/components/provider/CareLogForm';
 
 export default function ProviderLogPage() {
+  const [target, setTarget] = useState({
+    matchId: '',
+    patientName: '',
+    careTypeLabel: '',
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    setTarget({
+      matchId: params.get('id') ?? '',
+      patientName: params.get('patient') ?? '',
+      careTypeLabel: params.get('type') ?? '',
+    });
+  }, []);
+
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-md px-5 pt-5">
@@ -14,7 +33,11 @@ export default function ProviderLogPage() {
           공급자 홈
         </Link>
       </div>
-      <CareLogForm />
+      <CareLogForm
+        matchId={target.matchId}
+        patientName={target.patientName}
+        careTypeLabel={target.careTypeLabel}
+      />
     </main>
   );
 }
