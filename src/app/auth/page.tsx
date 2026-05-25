@@ -55,7 +55,7 @@ export default function AuthPage() {
   const handleSignOut = () => {
     clearStoredSession();
     setSession(null);
-    setMessage('로그아웃되었습니다.');
+    setMessage('로그아웃했습니다.');
   };
 
   return (
@@ -70,7 +70,7 @@ export default function AuthPage() {
             계정으로 안전하게 연결하기
           </h1>
           <p className="mt-2 text-sm font-semibold leading-6 text-slate-400">
-            공급자와 보호자 데이터를 분리하기 위한 Supabase Auth 기반의 첫 인증 화면입니다.
+            공급자와 보호자 데이터를 분리하기 위한 Supabase Auth 기반 인증 화면입니다.
           </p>
         </header>
 

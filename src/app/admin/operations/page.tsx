@@ -117,9 +117,10 @@ export default function AdminOperationsPage() {
   const issueBookings = useMemo(() => {
     return (overview?.bookings ?? [])
       .filter((booking) => !resolvedIds.includes(booking.id))
-      .filter((booking) =>
-        ['PAYMENT_PENDING', 'PENDING', 'MATCHING', 'TIMEOUT'].includes(booking.status ?? 'PAYMENT_PENDING')
-        || booking.identity_verification_status === 'PENDING',
+      .filter(
+        (booking) =>
+          ['PAYMENT_PENDING', 'PENDING', 'MATCHING', 'TIMEOUT'].includes(booking.status ?? 'PAYMENT_PENDING') ||
+          booking.identity_verification_status === 'PENDING',
       )
       .slice(0, 8);
   }, [overview, resolvedIds]);
@@ -150,7 +151,7 @@ export default function AdminOperationsPage() {
         <div>
           <h1 className="flex items-center gap-2 text-lg font-black text-white">
             <SlidersHorizontal className="h-5 w-5 text-sky-500" aria-hidden="true" />
-            실무 오퍼레이션 관제 센터
+            운영 스페이스 관리 센터
           </h1>
           <p className="mt-0.5 text-xs font-semibold text-slate-500">
             실제 예약 요청을 조회하고, 운영자가 AI 예외 상황을 수동 처리하는 화면입니다.
@@ -207,7 +208,8 @@ export default function AdminOperationsPage() {
                       </h3>
                       <p className="mt-1 flex items-start gap-1 text-xs font-semibold leading-5 text-rose-400">
                         <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                        언어 {booking.required_language ?? '-'} / 신원 {booking.identity_verification_status ?? 'NOT_REQUIRED'} / 면책동의 {booking.legal_disclaimer_agreed ? '완료' : '대기'}
+                        언어 {booking.required_language ?? '-'} / 신원 {booking.identity_verification_status ?? 'NOT_REQUIRED'} / 면책동의{' '}
+                        {booking.legal_disclaimer_agreed ? '완료' : '대기'}
                       </p>
                     </div>
                     <div className="flex justify-end gap-2 border-t border-slate-900 pt-2">
@@ -215,7 +217,7 @@ export default function AdminOperationsPage() {
                         type="button"
                         className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-[11px] font-black text-slate-400 transition hover:bg-slate-800"
                       >
-                        할증 1.5x 검토
+                        검증 1.5x 점검
                       </button>
                       <button
                         type="button"

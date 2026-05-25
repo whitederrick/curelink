@@ -38,7 +38,7 @@ const PRICE_POLICY = {
 const CARE_OPTIONS: Array<{ id: CareType; desc: string }> = [
   {
     id: 'BRIDGE',
-    desc: '퇴원 당일 병원에서 자택까지 동행하고 복약, 식사, 이동을 단기 집중 케어합니다.',
+    desc: '퇴원 당일 병원에서 자택까지 동행하고 복약, 식사, 이동을 집중 케어합니다.',
   },
   {
     id: 'TOURISM',
@@ -46,15 +46,15 @@ const CARE_OPTIONS: Array<{ id: CareType; desc: string }> = [
   },
   {
     id: 'EMERGENCY',
-    desc: '갑작스러운 일정 공백이나 보호자 부재 시 필요한 긴급 돌봄을 연결합니다.',
+    desc: '갑작스러운 일정 공백이나 보호자 부재가 필요한 긴급 케어를 연결합니다.',
   },
 ];
 
 const LANGUAGES = [
   { value: 'ko', label: '한국어 (기본 비용)' },
-  { value: 'en', label: 'English (영어 통역 크루)' },
-  { value: 'vi', label: 'Tiếng Việt (베트남어 통역 크루)' },
-  { value: 'zh', label: '中文 (중국어 통역 크루)' },
+  { value: 'en', label: 'English (영어 통역 포함)' },
+  { value: 'vi', label: 'Tiếng Việt (베트남어 통역 포함)' },
+  { value: 'zh', label: '中文 (중국어 통역 포함)' },
 ];
 
 type BookingResponse = {
@@ -179,9 +179,7 @@ export default function ConsumerBookingPage() {
                   type="button"
                   onClick={() => setCareType(item.id)}
                   className={`w-full rounded-3xl border-2 p-5 text-left transition active:scale-[0.99] ${
-                    careType === item.id
-                      ? 'border-sky-500 bg-sky-50'
-                      : 'border-slate-200 bg-white'
+                    careType === item.id ? 'border-sky-500 bg-sky-50' : 'border-slate-200 bg-white'
                   }`}
                 >
                   <span className="block text-base font-black text-slate-900">
@@ -209,7 +207,7 @@ export default function ConsumerBookingPage() {
           <div className="space-y-5">
             <h1 className="flex items-center gap-2 text-lg font-black text-slate-800">
               <Compass className="h-5 w-5 text-sky-500" aria-hidden="true" />
-              맞춤형 크루 매칭 조건
+              맞춤 케어 매칭 조건
             </h1>
 
             <label className="block space-y-1.5">
@@ -288,7 +286,7 @@ export default function ConsumerBookingPage() {
                   휠체어 이동 보조가 필요합니다
                 </span>
                 <span className="mt-0.5 block text-xs font-semibold leading-5 text-slate-400">
-                  낙상 방지 교육을 이수한 특화 크루를 우선 매칭합니다.
+                  이동 보조 교육을 이수한 특화 크루를 우선 매칭합니다.
                 </span>
               </span>
             </label>
@@ -338,13 +336,13 @@ export default function ConsumerBookingPage() {
           <div className="space-y-4">
             <h1 className="flex items-center gap-2 text-lg font-black text-slate-800">
               <CreditCard className="h-5 w-5 text-sky-500" aria-hidden="true" />
-              CureLink 최종 견적서
+              CureLink 최종 견적
             </h1>
 
             <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               {[
-                ['신청 항목', CURE_LINK_MAPPING.CARE_TYPE[careType]],
-                ['대상 환자', `${patientName} 님`],
+                ['요청 항목', CURE_LINK_MAPPING.CARE_TYPE[careType]],
+                ['대상 환자', patientName],
                 [
                   '언어 / 종교',
                   `${selectedLang === 'ko' ? '한국어' : `${selectedLang.toUpperCase()} 통역`} / ${
@@ -370,8 +368,7 @@ export default function ConsumerBookingPage() {
 
             <div className="flex gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-xs font-semibold leading-5 text-amber-800">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
-              화면의 금액은 안내용입니다. 실제 저장 금액은 백엔드가 동일한 가격 정책으로 다시 계산해
-              위조 요청을 차단합니다.
+              화면의 금액은 안내용입니다. 실제 저장 금액은 백엔드가 동일한 가격 정책으로 다시 계산해 위조 요청을 차단합니다.
             </div>
 
             {errorMessage && (
@@ -429,7 +426,7 @@ export default function ConsumerBookingPage() {
               href={createdBooking ? `/book/success?id=${createdBooking.id}` : '/book/success'}
               className="mx-auto flex min-h-12 max-w-xs items-center justify-center rounded-2xl bg-slate-950 px-5 text-sm font-black text-white transition active:scale-95"
             >
-              예약 관제 화면 보기
+              예약 관리 화면 보기
             </Link>
           </div>
         )}
