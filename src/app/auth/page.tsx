@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, HeartPulse, LogOut, ShieldCheck, UserPlus } from 'lucide-react';
+import { ArrowRight, CalendarPlus, HeartPulse, LogOut, ShieldCheck, UserPlus } from 'lucide-react';
 import {
   clearStoredSession,
   getStoredSession,
@@ -88,12 +88,24 @@ export default function AuthPage() {
               </div>
 
               <Link
+                href="/book"
+                className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-sky-500 text-sm font-black text-white transition active:scale-95"
+              >
+                예약 만들기
+                <CalendarPlus className="h-4 w-4 text-white" aria-hidden="true" />
+              </Link>
+
+              <Link
                 href="/provider"
                 className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-slate-950 text-sm font-black text-white transition active:scale-95"
               >
                 공급자 홈으로 이동
                 <ArrowRight className="h-4 w-4 text-sky-300" aria-hidden="true" />
               </Link>
+
+              <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-5 text-amber-800">
+                공급자 홈은 Supabase Auth metadata에 role: PROVIDER 또는 ADMIN이 있는 계정만 접근할 수 있습니다.
+              </p>
 
               <button
                 type="button"

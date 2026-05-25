@@ -10,7 +10,6 @@ import {
   MapPin,
   UserRoundCheck,
 } from 'lucide-react';
-import MatchApiTester from '@/components/provider/MatchApiTester';
 import {
   CURE_LINK_MAPPING,
   type CareTag,
@@ -47,6 +46,9 @@ const TEXT = {
   detailAndLog: '일지 작성 및 상세 보기',
   loadingSchedule: '실제 예약 큐를 불러오는 중입니다.',
   emptySchedule: '아직 공급자에게 호출된 예약 요청이 없습니다.',
+  loginRequired: '로그인이 필요합니다. 공급자 계정으로 로그인한 뒤 다시 확인해 주세요.',
+  roleRequired:
+    '로그인은 완료됐지만 이 계정에 공급자 권한이 없습니다. Supabase Auth metadata에 role: PROVIDER 또는 ADMIN을 부여해 주세요.',
   liveQueue: 'Live Booking Queue',
 };
 
@@ -120,6 +122,8 @@ export default function ProviderHomePage() {
         };
 
         if (!response.ok || !result.success) {
+          if (response.status === 401) throw new Error(TEXT.loginRequired);
+          if (response.status === 403) throw new Error(TEXT.roleRequired);
           throw new Error(result.error ?? 'Provider queue request failed.');
         }
 
@@ -143,7 +147,7 @@ export default function ProviderHomePage() {
   const todayMatches = useMemo(() => {
     if (bookings.length > 0) return bookings.map(toScheduleCard);
     return [];
-  }, [bookings, errorMessage]);
+  }, [bookings]);
 
   return (
     <main className="min-h-screen bg-slate-50 pb-12 text-slate-900 antialiased">
@@ -200,7 +204,7 @@ export default function ProviderHomePage() {
           {isLoading
             ? TEXT.loadingSchedule
             : errorMessage
-              ? `${errorMessage} 데모 일정으로 화면을 유지합니다.`
+              ? errorMessage
               : bookings.length === 0
                 ? TEXT.emptySchedule
                 : TEXT.liveQueue}
@@ -276,8 +280,6 @@ export default function ProviderHomePage() {
           </div>
         )}
       </section>
-
-      <MatchApiTester />
     </main>
   );
 }
